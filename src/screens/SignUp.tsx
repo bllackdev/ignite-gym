@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { useNavigation } from "@react-navigation/native";
 import {
   VStack,
@@ -11,16 +12,15 @@ import {
 import { useForm, Controller } from "react-hook-form";
 import * as yup from "yup";
 import { yupResolver } from "@hookform/resolvers/yup";
-import axios from "axios";
 
 import { api } from "../services/api";
+import { useAuth } from "../hooks/useAuth";
 
 import { Input } from "../components/Input";
 import { Button } from "../components/Button";
 
 import LogoSvg from "../assets/logo.svg";
 import BackgroundImg from "../assets/background.png";
-import { Alert } from "react-native";
 import { AppError } from "../utils/AppError";
 
 type FormDataPros = {
@@ -46,6 +46,8 @@ const signUpSchema = yup.object({
 export function SignUp() {
   const navigation = useNavigation();
   const toast = useToast();
+  const { signIn } = useAuth();
+  const [isLoading, setIsLoading] = useState(false);
   const {
     control,
     handleSubmit,
@@ -60,12 +62,19 @@ export function SignUp() {
 
   async function handleSignUp({ name, email, password }: FormDataPros) {
     try {
-      const response = await api.post("/users", { name, email, password });
+      setIsLoading(true);
+
+      await api.post("/users", { name, email, password });
+      await signIn(email, password);
+
     } catch (error) {
+      setIsLoading(false);
+
       const isAppError = error instanceof AppError;
       const title = isAppError
         ? error.message
         : "Não foi possível criar a conta. Tente novamente mais tarde.";
+        
       toast.show({
         title,
         placement: "top",
@@ -160,6 +169,7 @@ export function SignUp() {
           <Button
             title="Criar e acessar"
             onPress={handleSubmit(handleSignUp)}
+            isLoading={isLoading}
           />
         </Center>
 
